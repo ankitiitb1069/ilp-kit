@@ -26,7 +26,6 @@ function PeersControllerFactory (auth, config, log, Peer, connector) {
       router.delete('/peers/:id', auth.checkAuth, this.checkAdmin, this.deleteResource)
 
       // Public
-      router.post('/peers/rpc', this.rpc)
       router.get('/peers/:destination', this.getResource)
     }
 
@@ -146,32 +145,6 @@ function PeersControllerFactory (auth, config, log, Peer, connector) {
       yield peer.destroy()
 
       this.body = this.params
-    }
-
-    static * rpc () {
-      const prefix = this.query.prefix
-      const method = this.query.method
-      const params = this.body
-
-      if (!prefix) throw new InvalidBodyError('Prefix is not supplied')
-      if (!method) throw new InvalidBodyError('Method is not supplied')
-
-      const plugin = connector.getPlugin(prefix)
-
-      if (!plugin) {
-        this.statusCode = 404
-        this.body = 'no plugin with prefix "' + prefix + '"'
-        log.debug('404\'d request for plugin with prefix "' + prefix + '"')
-        return
-      }
-
-      try {
-        this.body = yield plugin.receive(method, params)
-      } catch (e) {
-        this.statusCode = 422
-        this.body = e.message
-        log.err('connector.rpc() failed: ', e.stack)
-      }
     }
   }
 }

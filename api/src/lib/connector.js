@@ -9,6 +9,7 @@ const Utils = require('./utils')
 const PeerFactory = require('../models/peer')
 const SettlementMethodFactory = require('../models/settlement_method')
 const getToken = require('ilp-plugin-virtual/src/util/token').token
+const rpcClient = require('../lib/rpc-client.js')
 
 const InvalidBodyError = require('../errors/invalid-body-error')
 
@@ -115,6 +116,10 @@ module.exports = class Conncetor {
 
     // Get host info
     const hostInfo = yield this.getPeerInfo(peer)
+    const client = new RpcClient({
+      uri: hostInfo.rpcUri,
+      receiver: hostInfo.ledgerName
+    })
 
     try {
       yield connector.addPlugin(hostInfo.ledgerName, {
@@ -122,11 +127,11 @@ module.exports = class Conncetor {
         plugin: 'ilp-plugin-virtual',
         store: true,
         options: {
+          _call: client.call,
           name: peer.hostname,
           secret: this.config.data.getIn(['connector', 'ed25519_secret_key']),
           peerPublicKey: hostInfo.publicKey,
           prefix: hostInfo.ledgerName,
-          rpcUri: hostInfo.rpcUri,
           maxBalance: '' + peer.limit,
           currency: peer.currency,
           info: {

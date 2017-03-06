@@ -3,6 +3,7 @@
 const fs = require('fs')
 const co = require('co')
 const Koa = require('koa.io')
+const Websockify = require('koa-websocket')
 const body = require('koa-better-body')
 const logger = require('koa-mag')
 const session = require('koa-session')
@@ -20,14 +21,16 @@ const User = require('../models/user')
 const Socket = require('./socket')
 const Pay = require('./pay')
 const Connector = require('./connector')
+const RPC = require('./rpc')
 
 module.exports = class App {
-  static constitute () { return [ Config, Auth, Router, Validator, Ledger, SPSP, DB, Log, Socket, User, Pay, Connector ] }
-  constructor (config, auth, router, validator, ledger, spsp, db, log, socket, user, pay, connector) {
+  static constitute () { return [ Config, Auth, Router, Validator, Ledger, SPSP, DB, Log, Socket, RPC, User, Pay, Connector ] }
+  constructor (config, auth, router, validator, ledger, spsp, db, log, socket, rpc, user, pay, connector) {
     this.config = config
     this.auth = auth
     this.router = router
     this.socket = socket
+    this.rpc = rpc
     this.validator = validator
     this.ledger = ledger
     this.spsp = spsp
@@ -39,7 +42,7 @@ module.exports = class App {
 
     validator.loadSchemasFromDirectory(__dirname + '/../../schemas')
 
-    const app = this.app = new Koa()
+    const app = this.app = Websockify(new Koa())
 
     const uploadDir = __dirname + '/../../../uploads'
 
@@ -78,6 +81,7 @@ module.exports = class App {
 
     app.use(require('koa-static')(__dirname + '/../../../uploads'))
 
+    rpc.attach(app)
     socket.attach(app)
     auth.attach(app)
 
