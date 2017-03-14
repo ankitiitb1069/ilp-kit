@@ -2,14 +2,16 @@
 
 module.exports = MiscControllerFactory
 
+const exec = require('child_process').exec
 const Auth = require('../lib/auth')
 const Log = require('../lib/log')
 const Config = require('../lib/config')
 const Ledger = require('../lib/ledger')
 const Utils = require('../lib/utils')
+const Connector = require('../lib/connector')
 
-MiscControllerFactory.constitute = [Auth, Log, Config, Ledger, Utils]
-function MiscControllerFactory (Auth, log, config, ledger, utils) {
+MiscControllerFactory.constitute = [Auth, Log, Config, Ledger, Utils, Connector]
+function MiscControllerFactory (Auth, log, config, ledger, utils, connector) {
   log = log('misc')
 
   return class MiscController {
@@ -73,8 +75,15 @@ function MiscControllerFactory (Auth, log, config, ledger, utils) {
      *      "currencySymbol": "$"
      *    }
      */
-    static * config() {
+    static * config () {
       const ledgerInfo = yield ledger.getInfo()
+
+      const packageVersion = require('../../../package.json').version
+      const gitCommit = yield new Promise(resolve => {
+        exec('git rev-parse --short HEAD', { cwd: __dirname }, (err, stdout) => {
+          resolve(stdout.split('\n').join(''))
+        })
+      })
 
       const response = {
         clientUri: config.data.get('client_host'),
@@ -89,8 +98,11 @@ function MiscControllerFactory (Auth, log, config, ledger, utils) {
           ga: config.data.getIn(['track', 'ga']),
           mixpanel: config.data.getIn(['track', 'mixpanel'])
         },
-        githubAuth: (config.data.getIn(['github', 'client_id']) && config.data.getIn(['github', 'client_secret']))
+        githubAuth: (config.data.getIn(['github', 'client_id']) && config.data.getIn(['github', 'client_secret'])),
+        version: `${packageVersion}-${gitCommit}`
       }
+
+      response.settlementMethods = yield connector.getSelfSettlementMethods(false, 0)
 
       if (config.data.get('reload')) {
         response.reload = true

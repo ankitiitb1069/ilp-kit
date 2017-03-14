@@ -1,5 +1,5 @@
 import React from 'react'
-import {Router, IndexRoute, Route} from 'react-router'
+import { Router, IndexRoute, Route } from 'react-router'
 import { isLoaded as isAuthLoaded, load, locationUpdate } from 'redux/actions/auth'
 import App from 'containers/App/App'
 import NotFound from 'containers/NotFound/NotFound'
@@ -119,14 +119,6 @@ export default (store) => {
     }, 'settlement')
   }
 
-  const getSettlementMethod = (nextState, cb) => {
-    require.ensure(['./containers/SettlementMethod/SettlementMethod'], (require) => {
-      cb(null, require('./containers/SettlementMethod/SettlementMethod'))
-
-      store.dispatch(locationUpdate())
-    }, 'settlementMethod')
-  }
-
   const getSettle = (nextState, cb) => {
     require.ensure(['./containers/Settle/Settle'], (require) => {
       cb(null, require('./containers/Settle/Settle'))
@@ -135,20 +127,20 @@ export default (store) => {
     }, 'settle')
   }
 
-  const getSettleSuccess = (nextState, cb) => {
-    require.ensure(['./containers/SettleSuccess/SettleSuccess'], (require) => {
-      cb(null, require('./containers/SettleSuccess/SettleSuccess'))
+  const getSettlementInfo = (nextState, cb) => {
+    require.ensure(['./containers/SettlementInfo/SettlementInfo'], (require) => {
+      cb(null, require('./containers/SettlementInfo/SettlementInfo'))
 
       store.dispatch(locationUpdate())
-    }, 'settleSuccess')
+    }, 'settlementInfo')
   }
 
-  const getSettleCancel = (nextState, cb) => {
-    require.ensure(['./containers/SettleCancel/SettleCancel'], (require) => {
-      cb(null, require('./containers/SettleCancel/SettleCancel'))
+  const getSettlementCancel = (nextState, cb) => {
+    require.ensure(['./containers/SettlementCancel/SettlementCancel'], (require) => {
+      cb(null, require('./containers/SettlementCancel/SettlementCancel'))
 
       store.dispatch(locationUpdate())
-    }, 'settleCancel')
+    }, 'settlementCancel')
   }
 
   /**
@@ -180,15 +172,13 @@ export default (store) => {
           <Route path="invites" getComponent={getInvites} />
           <Route path="users" getComponent={getUsers} />
           <Route path="peers" getComponent={getPeers} />
-          <Route path="settlement" getComponent={getSettlement}>
-            <Route path=":id" getComponent={getSettlementMethod} />
-          </Route>
+          <Route path="settlement" getComponent={getSettlement} />
         </Route>
 
         { /* Routes available to all */ }
         <Route path="settle/:method/:destination" getComponent={getSettle} />
-        <Route path="settle/:method/:destination/success" getComponent={getSettleSuccess} />
-        <Route path="settle/:method/:destination/cancel" getComponent={getSettleCancel} />
+        <Route path="settlement/cancel" getComponent={getSettlementCancel} />
+        <Route path="settlement/:id" getComponent={getSettlementInfo} />
         <Route path="verify/:username/:verifyCode" getComponent={rootComponent} />
 
         { /* Catch all route */ }

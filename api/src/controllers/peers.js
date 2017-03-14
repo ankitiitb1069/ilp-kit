@@ -27,7 +27,6 @@ function PeersControllerFactory (auth, config, log, Peer, connector) {
 
       // Public
       router.post('/peers/rpc', this.rpc)
-      router.get('/peers/:destination', this.getResource)
     }
 
     // TODO move to auth
@@ -47,7 +46,14 @@ function PeersControllerFactory (auth, config, log, Peer, connector) {
       })
 
       yield forEach(peers, function * (peer) {
-        const peerInfo = yield connector.getPeer(peer)
+        let peerInfo
+
+        try {
+          peerInfo = yield connector.getPeer(peer)
+        } catch (e) {
+          // Couldn't get the peer for some reason
+          log.err("couldn't get the peer", e.stack)
+        }
 
         if (!peerInfo) {
           peer.online = false
@@ -62,19 +68,12 @@ function PeersControllerFactory (auth, config, log, Peer, connector) {
       this.body = _.orderBy(peers, ['online', 'created_at'], ['desc', 'desc'])
     }
 
-    static* getResource () {
-      const peer = yield Peer.findOne({ where: { destination: this.params.destination } })
-
-      if (!peer) throw new NotFoundError('Unknown peer')
-
-      this.body = {
-        hostname: peer.hostname,
-        currency: peer.currency
-      }
-    }
-
     static * postResource () {
       const peer = new Peer()
+
+      if (!this.body.hostname || !this.body.limit || !this.body.currency) {
+        throw new InvalidBodyError('At least one of the required fields is missing')
+      }
 
       peer.hostname = this.body.hostname.replace(/.*?:\/\//g, '')
       peer.limit = this.body.limit

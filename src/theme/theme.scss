@@ -1,23 +1,20 @@
 html,
 body {
   height: 100%;
+  background: #fff;
 }
 
-body {
-  padding-top: 10px;
+#content {
+  display: table;
+  width: 100%;
+  height: inherit;
 }
-
-body > div {
-  min-height: 100%;
+#app {
+  display: table-cell;
 }
 
 a {
   cursor: pointer;
-}
-
-.appContent {
-  padding-top: 70px;
-  padding-bottom: 30px;
 }
 
 .footer {
@@ -70,6 +67,17 @@ div[tabindex="-1"]:focus {
 }
 
 // Bootstrap
+.row-sm > div {
+  padding-left: 10px;
+  padding-right: 10px;
+
+  &:first-child {
+    padding-left: 15px;
+  }
+  &:last-child {
+    padding-right: 15px;
+  }
+}
 .col {
   position: relative;
   min-height: 1px;

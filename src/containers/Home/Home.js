@@ -3,7 +3,10 @@ import {connect} from 'react-redux'
 import ReactTooltip from 'react-tooltip'
 import * as authActions from 'redux/actions/auth'
 
-import Alert from 'react-bootstrap/lib/Alert'
+import Dropdown from 'react-bootstrap/lib/Dropdown'
+import MenuItem from 'react-bootstrap/lib/MenuItem'
+
+import { LinkContainer } from 'react-router-bootstrap'
 
 import Amount from 'components/Amount/Amount'
 
@@ -19,7 +22,6 @@ const cx = classNames.bind(styles)
 @connect(
   state => ({
     user: state.auth.user,
-    verificationEmailSent: state.auth.verificationEmailSent,
     activeTab: state.auth.activeTab,
     verified: state.auth.verified,
     config: state.auth.config
@@ -30,12 +32,6 @@ export default class Home extends Component {
     user: PropTypes.object,
     reload: PropTypes.func,
     config: PropTypes.object,
-
-    // User verification
-    params: PropTypes.object,
-    resendVerificationEmail: PropTypes.func,
-    verificationEmailSent: PropTypes.bool,
-    verified: PropTypes.bool
   }
 
   state = {}
@@ -61,16 +57,6 @@ export default class Home extends Component {
       })
   }
 
-  handleDefaultPayment = () => {
-    navigator.registerPaymentHandler('interledger', location.protocol + '//' + location.hostname + (location.port ? ':' + location.port : '') + '/widget')
-  }
-
-  resendVerification = (event) => {
-    event.preventDefault()
-
-    this.props.resendVerificationEmail(this.props.user.username)
-  }
-
   toggleStats = (event) => {
     this.setState({
       ...this.state,
@@ -82,78 +68,90 @@ export default class Home extends Component {
     tracker.track('Toggle Stats')
   }
 
+  renderDepositLink = settlementMethod => {
+    const destination = this.props.user.destination
+
+    if (settlementMethod.type === 'custom') {
+      return (
+        <MenuItem href={`${settlementMethod.uri}?destination=${destination}`} key={settlementMethod.name}>
+          {settlementMethod.logo && <img src={settlementMethod.logo} className={cx('logo')}/>}
+          {!settlementMethod.logo && settlementMethod.name}
+        </MenuItem>
+      )
+    }
+
+    return (
+      <LinkContainer to={`/settle/${settlementMethod.type}/${destination}`} key={settlementMethod.name}>
+        <MenuItem>
+          {settlementMethod.logo && <img src={settlementMethod.logo} className={cx('logo')}/>}
+          {!settlementMethod.logo && settlementMethod.name}
+        </MenuItem>
+      </LinkContainer>
+    )
+  }
+
   render() {
-    const { user, verified, verificationEmailSent, config } = this.props
+    const { user, config } = this.props
     const { showStats, reloading } = this.state
 
     // For some reason dynamic routers have problems with that state
     if (!user) return null
     return (
       <div className="row">
-        <div className="col-sm-8">
+        <div className={cx('col-sm-8', 'historyBox')}>
           {/* Onboarding */}
           <Onboarding />
 
           {/* History */}
-          <div className="panel panel-default">
-            <div className="panel-heading">
-              <div className="panel-title">
-                {showStats &&
-                <a href="" onClick={this.toggleStats}>Payment History</a>}
-                {!showStats &&
-                <span>Payment History</span>}
-              </div>
-              <div className="panel-title pull-right">
-                {showStats &&
-                <span>Stats</span>}
-                {!showStats &&
-                <a href="" onClick={this.toggleStats}>Stats</a>}
-              </div>
-            </div>
-            <div className="panel-body">
-              {!showStats && <History />}
-              {showStats && <Stats />}
-            </div>
+          {/* <div>
+            {showStats &&
+            <a href="" onClick={this.toggleStats}>Payment History</a>}
+            {!showStats &&
+            <span>Payment History</span>}
           </div>
+          <div className="pull-right">
+            {showStats &&
+            <span>Stats</span>}
+            {!showStats &&
+            <a href="" onClick={this.toggleStats}>Stats</a>}
+          </div> */}
+
+          <div className={cx('header')}>
+            <h3>Payment history</h3>
+          </div>
+
+          {!showStats && <History />}
+          {showStats && <Stats />}
         </div>
         <div className="col-sm-4">
-          {/*
-           <div className="panel panel-default">
-           <div className="panel-heading">
-           <div className="panel-title">Use ILP kit as your default payment provider</div>
-           </div>
-           <div className="panel-body">
-           <button className="btn btn-complete btn-block" onClick={this.handleDefaultPayment}>Set as default</button>
-           </div>
-           </div>
-           */}
-          {/* TODO:UX Invalid verification error */}
-          {verified &&
-          <Alert bsStyle="success">
-            Your email has been verified!
-          </Alert>}
-
           {/* Balance */}
-          <div className="panel panel-default">
-            <div className="panel-body">
-              <div className={cx('balanceContainer')}>
-                <div className={cx('balanceDescription')}>Your Balance</div>
-                <div className={cx('balance')}>
-                  <Amount amount={user.balance} currencySymbol={config.currencySymbol} />
-                  {config.reload && <span className={cx('but')}>*</span>}
-                </div>
-                {config.reload &&
-                <div>
-                  <a className="btn btn-complete btn-lg"
-                     onClick={!user.isAdmin && this.reload} disabled={user.isAdmin}
-                     data-tip={user.isAdmin && "You have enough, you're the admin"}>
-                    {!reloading && 'Get More'}
-                    {reloading && 'Getting...'}
-                  </a>
-                  <div className={cx('balanceFake')}>* Don't get too excited, this is fake money</div>
-                </div>}
-              </div>
+          <div className={cx('balanceContainer')}>
+            <h4 className={cx('balanceDescription')}>Your Balance</h4>
+            <div className={cx('balance')}>
+              <Amount amount={user.balance} currencySymbol={config.currencySymbol} />
+              {config.reload && <span className={cx('but')}>*</span>}
             </div>
+            {!config.reload && config.settlementMethods && config.settlementMethods.length > 0 &&
+            <div className={cx('settlementButtonBox')}>
+              <Dropdown id="settlementButton" pullRight>
+                <Dropdown.Toggle bsStyle="success" bsSize="large">
+                  Deposit
+                </Dropdown.Toggle>
+                <Dropdown.Menu className={cx('options')}>
+                  {config.settlementMethods.map(this.renderDepositLink)}
+                </Dropdown.Menu>
+              </Dropdown>
+            </div>}
+            {config.reload &&
+            <div>
+              <a className="btn btn-success btn-lg"
+                 onClick={!user.isAdmin && this.reload} disabled={user.isAdmin}
+                 data-tip={user.isAdmin && "You have enough, you're the admin"}>
+                {!reloading && 'Get More'}
+                {reloading && 'Getting...'}
+              </a>
+              <div className={cx('balanceFake')}>* Don't get too excited, this is fake money</div>
+            </div>}
           </div>
 
           {/* Send Form */}
@@ -165,13 +163,6 @@ export default class Home extends Component {
               <SendForm />
             </div>
           </div>
-          {!user.email_verified &&
-          <Alert bsStyle="danger">
-            An email has been sent to <strong>{user.email}</strong>.
-            Please follow the steps in the message to confirm your email address.&nbsp;
-            {!verificationEmailSent && <a href="" onClick={this.resendVerification}>Resend the message</a>}
-            {verificationEmailSent && <strong>Verification email sent!</strong>}
-          </Alert>}
         </div>
 
         <ReactTooltip />

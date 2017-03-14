@@ -57,8 +57,9 @@ function UsersControllerFactory (auth, User, Invite, log, ledger, socket, config
       this.status = 404
     }
 
-    static * getAll() {
-      this.body = yield ledger.getAccounts()
+    static * getAll () {
+      // this.body = yield ledger.getAccounts()
+      this.body = yield User.findAll()
     }
 
     /**
@@ -207,6 +208,9 @@ function UsersControllerFactory (auth, User, Invite, log, ledger, socket, config
 
       userObj.username = username
 
+      // TODO:BEFORE_DEPLOY make sure doesn't already exist (do the same for peers)
+      userObj.destination = parseInt(Math.random() * 1000000)
+
       // Create the ledger account
       let ledgerUser
       try {
@@ -298,7 +302,7 @@ function UsersControllerFactory (auth, User, Invite, log, ledger, socket, config
      *      "id": 1
      *    }
      */
-    static * putResource() {
+    static * putResource () {
       const data = this.body
       const user = yield User.findOne({ where: {id: this.req.user.id} })
 
@@ -322,6 +326,11 @@ function UsersControllerFactory (auth, User, Invite, log, ledger, socket, config
           password: data.password,
           newPassword: data.newPassword
         })
+
+        // If this is the admin, update the environment and the env.list file too
+        if (user.isAdmin) {
+          config.changeAdminPass(data.newPassword)
+        }
 
         user.password = data.newPassword
       }

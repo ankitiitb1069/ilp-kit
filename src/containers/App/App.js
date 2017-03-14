@@ -4,14 +4,18 @@ import { LinkContainer, IndexLinkContainer } from 'react-router-bootstrap'
 import Helmet from 'react-helmet'
 import LoadingBar from 'react-redux-loading-bar'
 
+import Alert from 'react-bootstrap/lib/Alert'
+
 import Navbar from 'react-bootstrap/lib/Navbar'
 import Nav from 'react-bootstrap/lib/Nav'
 import NavItem from 'react-bootstrap/lib/NavItem'
+import NavDropdown from 'react-bootstrap/lib/NavDropdown'
+import MenuItem from 'react-bootstrap/lib/MenuItem'
 import Label from 'react-bootstrap/lib/Label'
 
 import hotkeys from 'decorators/hotkeys'
 
-import { isLoaded as isAuthLoaded, load as loadAuth, loadConfig, logout, updateBalance, verify } from 'redux/actions/auth'
+import { isLoaded as isAuthLoaded, load as loadAuth, loadConfig, logout, updateBalance, verify, resendVerificationEmail } from 'redux/actions/auth'
 import { routeActions } from 'react-router-redux'
 import { addPayment as historyAddPayment } from 'redux/actions/history'
 import { asyncConnect } from 'redux-async-connect'
@@ -36,9 +40,10 @@ const cx = classNames.bind(styles)
     user: state.auth.user,
     config: state.auth.config,
     loading: state.auth.loading,
-    advancedMode: state.auth.advancedMode
+    advancedMode: state.auth.advancedMode,
+    verificationEmailSent: state.auth.verificationEmailSent
   }),
-  {logout, pushState: routeActions.push, historyAddPayment, updateBalance, verify, loadConfig})
+  {logout, pushState: routeActions.push, historyAddPayment, updateBalance, verify, loadConfig, resendVerificationEmail})
 @hotkeys()
 export default class App extends Component {
   static propTypes = {
@@ -54,9 +59,13 @@ export default class App extends Component {
     // TODO:UI add loading screen
     loading: PropTypes.bool,
     advancedMode: PropTypes.bool,
+    loadConfig: PropTypes.func,
 
+    // User verification
+    verified: PropTypes.bool,
     verify: PropTypes.func,
-    loadConfig: PropTypes.func
+    verificationEmailSent: PropTypes.bool,
+    resendVerificationEmail: PropTypes.func
   }
 
   static contextTypes = {
@@ -124,12 +133,18 @@ export default class App extends Component {
     this.props.logout()
   }
 
+  resendVerification = (event) => {
+    event.preventDefault()
+
+    this.props.resendVerificationEmail(this.props.user.username)
+  }
+
   render() {
-    const { user, advancedMode } = this.props
+    const { user, advancedMode, verified, verificationEmailSent } = this.props
     const appConfig = this.props.config || {}
 
     return (
-      <div className={cx('container')}>
+      <div className={cx('App', !user && 'darkBg')}>
         <Helmet
           defaultTitle={appConfig.title}
           titleTemplate={appConfig.title && '%s - ' + appConfig.title}
@@ -146,15 +161,12 @@ export default class App extends Component {
           ]}
         />
 
-        {__CLIENT__ &&
-        <LoadingBar className={cx('loadingBar')} />}
-
-        {/* <script src="https://web-payments.net/polyfill.js"></script> */}
+        <LoadingBar className={cx('loadingBar')} />
 
         {user &&
-        <Navbar fixedTop expanded={ this.state.navExpanded } onToggle={ this.onNavbarToggle }>
+        <Navbar inverse expanded={ this.state.navExpanded } onToggle={ this.onNavbarToggle }>
           <Navbar.Header>
-            <Navbar.Brand>
+            <Navbar.Brand className={cx('brand')}>
               {appConfig.title} {advancedMode && <Label bsStyle="warning">Advanced Mode</Label>}
             </Navbar.Brand>
             <Navbar.Toggle />
@@ -180,31 +192,39 @@ export default class App extends Component {
               <LinkContainer to="/settlement">
                 <NavItem onClick={this.onNavItemClick}>Settlement</NavItem>
               </LinkContainer>}
-              {!user.github_id &&
-              <LinkContainer to="/settings">
-                <NavItem onClick={this.onNavItemClick}>Settings</NavItem>
-              </LinkContainer>}
-              <NavItem href="https://interledgerjs.github.io/ilp-kit/apidoc/"
-                             target="_blank" onClick={this.onNavItemClick}>
-                API docs
-              </NavItem>
-              <LinkContainer to="/logout">
-                <NavItem className="logout-link" onClick={this.handleLogout}>
-                  Logout
-                </NavItem>
-              </LinkContainer>
+
+              <NavDropdown id="navDropdown" title={<span>{user.profile_picture && <img className={cx('profilePic')} src={user.profile_picture} />} {user.displayName}</span>}>
+                {!user.github_id &&
+                <LinkContainer to="/settings">
+                  <MenuItem>Settings</MenuItem>
+                </LinkContainer>}
+                <MenuItem href="https://interledgerjs.github.io/ilp-kit/apidoc/" target="_blank">API Docs</MenuItem>
+                <MenuItem divider />
+                <MenuItem onClick={this.handleLogout}>Logout</MenuItem>
+              </NavDropdown>
             </Nav>
-            <Navbar.Text pullRight>
-              {user.profile_picture &&
-              <img className={cx('profilePic')} src={user.profile_picture} />}
-              Hi {user.displayName}
-            </Navbar.Text>
           </Navbar.Collapse>
         </Navbar>}
 
-        <div className={cx('appContent')}>
+        {user && user.email && (!user.email_verified || verified) &&
+        <Alert bsStyle={verified ? 'success' : 'info'} className={cx('notVerifiedBox')}>
+          <div className={cx('container')}>
+            {verified && <span>Your email has been verified!</span>}
+            {!verified &&
+            <span>
+              An email has been sent to <strong>{user.email}</strong>.
+              Please follow the steps in the message to confirm your email address.&nbsp;
+              {!verificationEmailSent && <a href="" onClick={this.resendVerification}>Resend the message</a>}
+              {verificationEmailSent && <strong>Verification email sent!</strong>}
+            </span>}
+          </div>
+        </Alert>}
+
+        <div className={cx('container')}>
           {this.props.children}
         </div>
+
+        {advancedMode && <div className={cx('version')}>Version: {config.version}</div>}
       </div>
     )
   }

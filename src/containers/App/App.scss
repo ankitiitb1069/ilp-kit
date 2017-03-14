@@ -1,5 +1,27 @@
 @import 'variables';
 
+.App {
+  min-height: 100%;
+  padding-bottom: 30px;
+
+  &.darkBg {
+    background: #333333;
+    padding-bottom: 0;
+  }
+}
+.notVerifiedBox {
+  padding-left: 0;
+  padding-right: 0;
+  margin-top: -20px;
+  border-radius: 0;
+  border-top: 0;
+  border-right: 0;
+  border-left: 0;
+}
+.brand {
+  color: #fff !important;
+  cursor: default;
+}
 .loadingBar {
   position: fixed;
   top: 0;
@@ -10,7 +32,11 @@
   z-index: 1040;
 }
 .profilePic {
-  width: 30px;
-  margin: -5px 10px -3px;
+  width: 25px;
+  margin: -5px 10px -3px 0;
   border-radius: 20px;
+}
+.version {
+  margin: 0 0 20px;
+  text-align: center;
 }

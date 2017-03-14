@@ -58,7 +58,7 @@ export default class ChangePasswordForm extends Component {
       <form onSubmit={handleSubmit(this.handleSubmit)}>
         {success &&
         <Alert bsStyle="success">
-          Your password has been changed successfully
+          Your password has been updated successfully
         </Alert>}
 
         {error && error.id &&
@@ -80,7 +80,7 @@ export default class ChangePasswordForm extends Component {
             <Input object={repeatPassword} type="password" label="Repeat Password" size="lg" />
           </div>
           <div className="row">
-            <button type="submit" className="btn btn-complete" disabled={pristine || (invalid && !submitFailed) || submitting}>
+            <button type="submit" className="btn btn-success" disabled={pristine || (invalid && !submitFailed) || submitting}>
               {submitting ? ' Submitting...' : ' Submit'}
             </button>
           </div>

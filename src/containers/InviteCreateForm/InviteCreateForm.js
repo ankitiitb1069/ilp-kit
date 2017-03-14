@@ -59,11 +59,6 @@ export default class InviteCreateForm extends Component {
 
     return (
       <div>
-        {success &&
-        <Alert bsStyle="success">
-          Invite code has been created!
-        </Alert>}
-
         {fail && fail.id &&
         <Alert bsStyle="danger">
           Something went wrong
@@ -71,15 +66,16 @@ export default class InviteCreateForm extends Component {
 
         <form onSubmit={handleSubmit(this.handleSubmit)}>
           <div className="form-group">
-            <Input object={amount} label="Amount" size="lg" focus />
-          </div>
-
-          <div className="row">
-            <div className="col-sm-5">
-              <button type="submit" className="btn btn-complete btn-block"
-                      disabled={invalid || submitting}>
-                {submitting ? 'Generating...' : 'Generate'}
-              </button>
+            <div className="row">
+              <div className={cx('col-sm-offset-7', 'col-sm-3')}>
+                <Input object={amount} label="Amount" size="lg" focus />
+              </div>
+              <div className={cx('col-sm-2')}>
+                <button type="submit" className={cx('btn', 'btn-lg', 'btn-success', 'btn-block', 'btn-submit')}
+                        disabled={invalid || submitting}>
+                  {submitting ? 'Generating...' : 'Generate'}
+                </button>
+              </div>
             </div>
           </div>
         </form>

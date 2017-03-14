@@ -25,7 +25,7 @@ const currencies = {
 module.exports = class Conncetor {
   static constitute () { return [ Config, PeerFactory, Utils, Log, SettlementMethodFactory ] }
   constructor (config, Peer, utils, log, SettlementMethod) {
-    this.config = config.data
+    this.config = config
     this.utils = utils
     this.Peer = Peer
     this.SettlementMethod = SettlementMethod
@@ -63,7 +63,7 @@ module.exports = class Conncetor {
 
   * waitForLedger () {
     const port = process.env.CLIENT_PORT
-    const ledgerPublicPath = this.config.getIn(['ledger', 'public_uri'])
+    const ledgerPublicPath = this.config.data.getIn(['ledger', 'public_uri'])
 
     return new Promise(resolve => {
       const interval = setInterval(() => {
@@ -92,7 +92,7 @@ module.exports = class Conncetor {
     let ledgerName
     if (hostInfo.publicKey) {
       publicKey = hostInfo.publicKey
-      token = getToken(this.config.getIn(['connector', 'ed25519_secret_key']), publicKey)
+      token = getToken(this.config.data.getIn(['connector', 'ed25519_secret_key']), publicKey)
       rpcUri = hostInfo.peersRpcUri
       ledgerName = 'peer.' + token.substring(0, 5) + '.' + peer.currency.toLowerCase() + '.'
     }
@@ -123,7 +123,7 @@ module.exports = class Conncetor {
         store: true,
         options: {
           name: peer.hostname,
-          secret: this.config.getIn(['connector', 'ed25519_secret_key']),
+          secret: this.config.data.getIn(['connector', 'ed25519_secret_key']),
           peerPublicKey: hostInfo.publicKey,
           prefix: hostInfo.ledgerName,
           rpcUri: hostInfo.rpcUri,
@@ -164,22 +164,6 @@ module.exports = class Conncetor {
       if (!peerStatus) return
 
       // Settlement Methods
-      // TODO:PERFORMANCE don't call this on every request
-      const dbSettlementMethods = yield self.SettlementMethod.findAll({ where: { enabled: true } })
-      const settlementMethods = dbSettlementMethods.map((settlementMethod) => {
-        const uri = settlementMethod.type === 'custom'
-          ? `${settlementMethod.uri}?destination=${peer.destination}`
-          : self.config.get('client_host') + '/settle/' + settlementMethod.type + '/' + peer.destination + '?amount=' + Math.max(peerStatus.balance, 0)
-
-        return {
-          id: settlementMethod.id,
-          name: settlementMethod.name,
-          description: settlementMethod.description,
-          uri,
-          logo: settlementMethod.logoUrl
-        }
-      })
-
       yield plugin.sendMessage({
         account: message.from,
         from: message.to,
@@ -187,10 +171,35 @@ module.exports = class Conncetor {
         ledger: message.ledger,
         data: {
           method: 'settlement_methods_response',
-          settlement_methods: settlementMethods
+          settlement_methods: yield self.getSelfSettlementMethods(peer.destination, peerStatus.balance)
         }
       })
     }))
+  }
+
+  * getSelfSettlementMethods (destination, amount) {
+    // TODO:PERFORMANCE don't call this on every request
+    const dbSettlementMethods = yield this.SettlementMethod.findAll({ where: { enabled: true } })
+    return dbSettlementMethods.map(settlementMethod => {
+      let uri
+
+      if (destination) {
+        uri = settlementMethod.type === 'custom'
+          ? `${settlementMethod.uri}?destination=${destination}`
+          : this.config.data.get('client_host') + '/settle/' + settlementMethod.type + '/' + destination + '?amount=' + Math.max(amount, 0)
+      } else {
+        uri = settlementMethod.uri
+      }
+
+      return {
+        id: settlementMethod.id,
+        name: settlementMethod.name,
+        type: settlementMethod.type,
+        description: settlementMethod.description,
+        uri,
+        logo: settlementMethod.logoUrl
+      }
+    })
   }
 
   * removePeer (peer) {
@@ -251,7 +260,7 @@ module.exports = class Conncetor {
 
     yield plugin.sendMessage({
       account: peerInfo.ledgerName + peerInfo.publicKey,
-      from: peerInfo.ledgerName + this.config.getIn(['connector', 'public_key']),
+      from: peerInfo.ledgerName + this.config.data.getIn(['connector', 'public_key']),
       to: peerInfo.ledgerName + peerInfo.publicKey,
       ledger: peerInfo.ledgerName,
       data: {

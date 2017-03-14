@@ -1,6 +1,16 @@
 @import 'variables';
 @import 'mixins';
 
+.header {
+  margin-bottom: 20px;
+
+  h3 {
+    margin: 0;
+  }
+}
+.btn-add-lg {
+  margin: 20px 0;
+}
 .invitesStatus {
   text-align: center;
 
@@ -11,10 +21,20 @@
 }
 .invite {
   position: relative;
+  border-top: 1px solid $history-payment-separator-color;
+  padding: 15px 0;
 
   &:hover .deleteButton {
     opacity: 1;
   }
+
+  & > div > div {
+    line-height: 40px;
+  }
+}
+.tableHead {
+  font-size: 15px;
+  padding: 10px 0;
 }
 .lbl {
   display: block;
@@ -28,10 +48,7 @@
   text-align: center;
 }
 .amount {
-  display: block;
-  margin: 3px 0;
   font-size: 20px;
-  color: $brand-color;
 }
 .claimed {
   color: $muted-text-color;

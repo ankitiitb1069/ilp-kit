@@ -46,11 +46,29 @@ export default class ProfileForm extends Component {
     // Successable
     tempSuccess: PropTypes.func,
     success: PropTypes.bool,
+    permFail: PropTypes.func,
+    fail: PropTypes.any,
 
     // Auth
     user: PropTypes.object,
     save: PropTypes.func,
     updatePic: PropTypes.func
+  }
+
+  state = {}
+
+  componentWillReceiveProps(nextProps) {
+    if (this.props.fail !== nextProps.fail) {
+      this.setState({
+        error: nextProps.fail
+      })
+    }
+
+    if (this.props.error !== nextProps.error) {
+      this.setState({
+        error: nextProps.error
+      })
+    }
   }
 
   save = (data) => {
@@ -88,6 +106,9 @@ export default class ProfileForm extends Component {
 
       tracker.track('Profile picture upload')
     },
+    error: (file, error) => {
+      this.props.permFail(error)
+    },
     complete: (file) => {
       this.dropzone.removeFile(file)
     },
@@ -99,58 +120,65 @@ export default class ProfileForm extends Component {
 
   render() {
     const { fields: { email, name, password, newPassword, verifyNewPassword }, pristine, invalid,
-      handleSubmit, submitting, success, error, submitFailed, user } = this.props
+      handleSubmit, submitting, success, submitFailed, user } = this.props
+
+    const { error } = this.state
 
     if (!user) return null
 
     return (
-      <div className="panel panel-default">
-        <div className="panel-heading">
-          <div className="panel-title">Edit Profile</div>
+      <div className={cx('ProfileForm')}>
+        <div className={cx('header')}>
+          <h3>Edit Profile</h3>
         </div>
-        <div className="panel-body">
-          {success &&
-          <Alert bsStyle="success">
-            Your profile has been successfully changed!
-          </Alert>}
 
-          {error && error.id &&
-          <Alert bsStyle="danger">
-            {(() => {
-              switch (error.id) {
-                case 'EmailTakenError': return 'Email is already taken'
-                case 'NotFoundError': return 'Current password is wrong'
-                default: return 'Something went wrong'
-              }
-            })()}
-          </Alert>}
+        {success &&
+        <Alert bsStyle="success">
+          Your profile has been successfully updated!
+        </Alert>}
 
-          <div className={cx('profilePicBox')}>
-            <img src={user.profile_picture || require('../../components/HistoryItem/placeholder.png')} className={cx('profilePic')} />
-            <DropzoneComponent
-              config={this.dropzoneConfig}
-              eventHandlers={this.dropzoneEventHandlers}
-              className={cx('dropzone', 'dropzoneLocal')}>
-              <div className="dz-message">
-                <i className="fa fa-cloud-upload" />
-                Drop an image or click to upload
-              </div>
-            </DropzoneComponent>
+        {error && error.id &&
+        <Alert bsStyle="danger">
+          {(() => {
+            switch (error.id) {
+              case 'EmailTakenError': return 'Email is already taken'
+              case 'NotFoundError': return 'Current password is wrong'
+              case 'InvalidBodyError': return error.message
+              default: return 'Something went wrong'
+            }
+          })()}
+        </Alert>}
+
+        <div className={cx('row', 'row-sm')}>
+          <div className={cx('col-sm-3')}>
+            <div className={cx('profilePicBox')}>
+              <img src={user.profile_picture || require('../../components/HistoryItem/placeholder.png')} className={cx('profilePic')} />
+              <DropzoneComponent
+                config={this.dropzoneConfig}
+                eventHandlers={this.dropzoneEventHandlers}
+                className={cx('dropzone', 'dropzoneLocal')}>
+                <div className="dz-message">
+                  <i className="fa fa-cloud-upload" />
+                  Upload new picture
+                </div>
+              </DropzoneComponent>
+            </div>
           </div>
+          <div className={cx('col-sm-9')}>
+            <form onSubmit={handleSubmit(this.save)}>
+              <Input object={email} label="Email" type="email" size="lg" focus />
+              <Input object={name} label="Name" type="text" size="lg" />
+              <Input object={password} label="Current Password" type="password" size="lg" />
 
-          <form onSubmit={handleSubmit(this.save)}>
-            <Input object={email} label="Email" type="email" size="lg" focus />
-            <Input object={name} label="Name" type="text" size="lg" />
-            <Input object={password} label="Current Password" type="password" size="lg" />
+              <label>Change Password</label>
+              <Input object={newPassword} label="New Password" type="password" size="lg" />
+              <Input object={verifyNewPassword} label="Verify New Password" type="password" size="lg" />
 
-            <label>Change Password</label>
-            <Input object={newPassword} label="New Password" type="password" size="lg" />
-            <Input object={verifyNewPassword} label="Verify New Password" type="password" size="lg" />
-
-            <button type="submit" className="btn btn-primary" disabled={pristine || (invalid && !submitFailed) || submitting}>
-              {submitting ? ' Saving...' : ' Save'}
-            </button>
-          </form>
+              <button type="submit" className="btn btn-success" disabled={pristine || (invalid && !submitFailed) || submitting}>
+                {submitting ? ' Saving...' : ' Save'}
+              </button>
+            </form>
+          </div>
         </div>
       </div>
     )
