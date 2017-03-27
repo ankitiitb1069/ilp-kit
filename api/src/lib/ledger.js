@@ -3,7 +3,7 @@
 const superagent = require('superagent-promise')(require('superagent'), Promise)
 const Container = require('constitute').Container
 const EventEmitter = require('events').EventEmitter
-
+const Plugin = require('ilp-plugin-bells')
 const PaymentFactory = require('../models/payment')
 const UserFactory = require('../models/user')
 

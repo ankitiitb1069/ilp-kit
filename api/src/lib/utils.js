@@ -32,7 +32,7 @@ module.exports = class Utils {
       uri_fallback: false,
       request_timeout: 3000
     })
-
+console.log('looking up', resource)
     return (yield new Promise((resolve, reject) => {
       webfinger.lookup(resource, (err, res) => err ? reject(err) : resolve(res.object))
     }))
@@ -93,7 +93,7 @@ module.exports = class Utils {
       ilpAddress,
       identifier: self.isWebfinger(destination) ? destination : this.getWebfingerAddress(destination),
       currencyCode: receiver.currency_code,
-      currencySymbol: receiver.currency_symbol,
+      currencyScale: receiver.currency_scale,
       name: receiver.name,
       imageUrl: receiver.image_url
     }

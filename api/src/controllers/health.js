@@ -6,6 +6,7 @@ HealthControllerFactory.constitute = []
 function HealthControllerFactory () {
   return class HealthController {
     static init (router) {
+console.log('INIT HEALTH')
       router.get('/health', this.health)
     }
 
@@ -25,6 +26,7 @@ function HealthControllerFactory () {
      *    HTTP/1.1 200 OK
      */
     static health () {
+console.log('CALLED HEALTH')
       // TODO: Add some checks, e.g. database status
       this.status = 200
     }
