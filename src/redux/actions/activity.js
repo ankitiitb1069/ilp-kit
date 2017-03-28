@@ -2,7 +2,7 @@ import * as types from '../actionTypes'
 
 // TODO shouldn't ask for transfer link
 export const toggleJson = (id, transfer) => (dispatch, getState) => {
-  const payment = getState().history.list.filter((item) => {
+  const payment = getState().activity.list.filter((item) => {
     return item.id === id
   })[0]
 
@@ -28,24 +28,9 @@ export const toggleJson = (id, transfer) => (dispatch, getState) => {
 }
 
 // TODO separate module for WS stuff?
-export const addPayment = (data) => (dispatch) => {
+export const addActivity = result => dispatch => {
   return dispatch({
-    type: types.WS_PAYMENT,
-    result: data
+    type: types.WS_ACTIVITY,
+    result
   })
-}
-
-export const loadTransfers = (payment) => {
-  return {
-    timeSlot: payment.time_slot,
-    message: payment.message,
-    types: [types.LOAD_TRANSFERS, types.LOAD_TRANSFERS_SUCCESS, types.LOAD_TRANSFERS_FAIL],
-    promise: (client) => client.get('/payments/transfers/' + payment.time_slot, {
-      params: {
-        sourceIdentifier: payment.source_identifier,
-        destinationIdentifier: payment.destination_identifier,
-        message: payment.message,
-      }
-    })
-  }
 }

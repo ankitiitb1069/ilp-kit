@@ -3,6 +3,7 @@
 module.exports = UserFactory
 
 const _ = require('lodash')
+const Container = require('constitute').Container
 const Model = require('five-bells-shared').Model
 const PersistentModelMixin = require('five-bells-shared').PersistentModelMixin
 const Database = require('../lib/db')
@@ -11,13 +12,14 @@ const Ledger = require('../lib/ledger')
 const Config = require('../lib/config')
 const Utils = require('../lib/utils')
 const Sequelize = require('sequelize')
+const InviteFactory = require('./invite')
 
 const ServerError = require('../errors/server-error')
 const InvalidBodyError = require('../errors/invalid-body-error')
 const EmailTakenError = require('../errors/email-taken-error')
 
-UserFactory.constitute = [Database, Validator, Ledger, Config, Utils]
-function UserFactory (sequelize, validator, ledger, config, utils) {
+UserFactory.constitute = [Database, Validator, Container, Ledger, Config, Utils]
+function UserFactory (sequelize, validator, container, ledger, config, utils) {
   class User extends Model {
     static convertFromExternal (data) {
       return data
@@ -71,6 +73,12 @@ function UserFactory (sequelize, validator, ledger, config, utils) {
 
         yield next
       }
+    }
+
+    static * getAvailableUsername (username) {
+      const user = yield User.findOne({ where: { username } })
+
+      return user ? username + Math.floor((Math.random() * 1000) + 1) : username
     }
 
     static getVerificationCode (email) {
@@ -261,6 +269,15 @@ function UserFactory (sequelize, validator, ledger, config, utils) {
     country: Sequelize.STRING,
     zip_code: Sequelize.STRING
   })
+
+  container.schedulePostConstructor((Invite) => {
+    User.DbModel.belongsTo(Invite.DbModel, {
+      foreignKey: {
+        name: 'invite_code'
+      },
+      constraints: false
+    })
+  }, [ InviteFactory ])
 
   return User
 }

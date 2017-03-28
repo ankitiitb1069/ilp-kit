@@ -7,13 +7,19 @@ const Container = require('constitute').Container
 const Model = require('five-bells-shared').Model
 const InvalidBodyError = require('five-bells-shared/errors/invalid-body-error')
 const PersistentModelMixin = require('five-bells-shared').PersistentModelMixin
-const Database = require('../lib/db')
 const Validator = require('five-bells-shared/lib/validator')
 const Sequelize = require('sequelize')
+
+const debug = require('debug')('ilp-kit:payment-model')
+const Database = require('../lib/db')
 const UserFactory = require('./user')
+const ActivityLogFactory = require('./activity_log')
+const ActivityLogsItemFactory = require('./activity_logs_item')
 
 PaymentFactory.constitute = [Database, Validator, Container, UserFactory]
 function PaymentFactory (sequelize, validator, container, User) {
+  let ActivityLog
+
   class Payment extends Model {
     static convertFromExternal (data) {
       return data
@@ -58,162 +64,7 @@ function PaymentFactory (sequelize, validator, container, User) {
       }
     }
 
-    static * getUserPayments(user, page, limit) {
-      page = page > 0 ? Number(page) : 1
-      limit = Number(limit)
-
-      // TODO the current grouping mechanism is not ideal.
-      //  It groups by time intervals, so the same payment stream can be
-      //  represented in different rows, and different payment streams can
-      //  appear in the same row
-
-      // TODO switch to a legit sequalize format
-
-      if (sequelize.options.dialect === 'sqlite') {
-        return {
-          list: yield sequelize.query(
-            'SELECT source_identifier, destination_identifier,'
-              + ' sum(source_amount) as source_amount,'
-              + ' source_name,'
-              + ' source_image_url,'
-              + ' sum(destination_amount) as destination_amount,'
-              + ' destination_name,'
-              + ' destination_image_url,'
-              + ' message,'
-              + ' created_at AS time_slot,'
-              + ' created_at AS recent_date,'
-              + ' count(*) as transfers_count'
-            + ' FROM "Payments"'
-            + ' WHERE state = \'success\' '
-              + ' AND ('
-                + ' source_user = ' + user.id
-                + " OR source_identifier = '" + user.identifier + "'"
-                + ' OR destination_user = ' + user.id
-                + " OR destination_identifier = '" + user.identifier + "'"
-              + ' )'
-            + ' GROUP BY source_identifier, source_name, source_image_url, '
-              + 'destination_identifier, destination_name, destination_image_url,'
-              + ' message, time_slot'
-            + ' ORDER BY recent_date DESC'
-            + ' LIMIT ' + limit
-            + ' OFFSET ' + limit * (page - 1),
-            {model: Payment.DbModel}
-          ),
-          count: yield sequelize.query(
-            'SELECT count(source_amount), destination_identifier,'
-              + ' sum(source_amount) as source_amount,'
-              + ' sum(destination_amount) as destination_amount,'
-              + ' message,'
-              + ' created_at AS time_slot'
-            + ' FROM "Payments"'
-            + ' WHERE state = \'success\' '
-              + ' AND ('
-                + ' source_user = ' + user.id
-                + " OR source_identifier = '" + user.identifier + "'"
-                + ' OR destination_user = ' + user.id
-                + " OR destination_identifier = '" + user.identifier + "'"
-              + ' )'
-            + ' GROUP BY source_identifier, destination_identifier, message, time_slot'
-          )
-        }
-      }
-
-      const list = yield sequelize.query(
-        'SELECT source_identifier, destination_identifier,'
-          + ' sum(source_amount) as source_amount,'
-          + ' source_name,'
-          + ' source_image_url,'
-          + ' sum(destination_amount) as destination_amount,'
-          + ' destination_name,'
-          + ' destination_image_url,'
-          + ' message,'
-          + ' date_trunc(\'hour\', created_at) AS time_slot,'
-          + ' max(created_at) AS recent_date,'
-          + ' count(*) as transfers_count'
-        + ' FROM "Payments"'
-        + ' WHERE state = \'success\' '
-          + ' AND ('
-            + ' source_user = ' + user.id
-            + " OR source_identifier = '" + user.identifier + "'"
-            + ' OR destination_user = ' + user.id
-            + " OR destination_identifier = '" + user.identifier + "'"
-          + ' )'
-        + ' GROUP BY source_identifier, source_name, source_image_url, '
-          + 'destination_identifier, destination_name, destination_image_url,'
-          + ' message, time_slot'
-        + ' ORDER BY recent_date DESC'
-        + ' LIMIT ' + limit
-        + ' OFFSET ' + limit * (page - 1),
-        {model: Payment.DbModel}
-      )
-
-      // TODO:PERFORMANCE this selects the rows
-      const count = yield sequelize.query(
-        'SELECT count(source_amount), destination_identifier,'
-          + ' sum(source_amount) as source_amount,'
-          + ' sum(destination_amount) as destination_amount,'
-          + ' message,'
-          + ' date_trunc(\'hour\', created_at) AS time_slot'
-        + ' FROM "Payments"'
-        + ' WHERE state = \'success\' '
-          + ' AND ('
-            + ' source_user = ' + user.id
-            + " OR source_identifier = '" + user.identifier + "'"
-            + ' OR destination_user = ' + user.id
-            + " OR destination_identifier = '" + user.identifier + "'"
-          + ' )'
-        + ' GROUP BY source_identifier, destination_identifier, message, time_slot'
-      )
-
-      return {
-        list,
-        count: count[1].rowCount
-      }
-    }
-
-    static getTransfers(params) {
-      if (sequelize.options.dialect === 'sqlite') {
-        return sequelize.query(
-          'SELECT source_amount, destination_amount, created_at, transfer'
-          + ' FROM "Payments"'
-          + ' WHERE state = \'success\' '
-          + " AND source_identifier = '" + params.sourceIdentifier + "'"
-          + " AND destination_identifier = '" + params.destinationIdentifier + "'"
-          + " AND created_at = '" + params.timeSlot + "'"
-          + (params.message ? " AND message = '" + params.message + "'" : '')
-          + ' ORDER BY created_at DESC',
-          {model: Payment.DbModel}
-        )
-      }
-
-      return sequelize.query(
-        'SELECT source_amount, destination_amount, created_at, transfer'
-      + ' FROM "Payments"'
-      + ' WHERE state = \'success\' '
-        + " AND source_identifier = '" + params.sourceIdentifier + "'"
-        + " AND destination_identifier = '" + params.destinationIdentifier + "'"
-        + " AND date_trunc('hour', created_at) = '" + params.timeSlot + "'"
-        + (params.message ? " AND message = '" + params.message + "'" : '')
-      + ' ORDER BY created_at DESC',
-        {model: Payment.DbModel}
-      )
-    }
-
-    static getPayment(transfer) {
-      return Payment.findOne({
-        attributes: {include: [
-          [Sequelize.col('SourceUser.username'), 'sourceUserUsername']
-        ]},
-        where: {
-          transfer: transfer
-        },
-        include: [{
-          model: User.DbModel, as: 'SourceUser', attributes: []
-        }]
-      })
-    }
-
-    static * getUserStats(user) {
+    static * getUserStats (user) {
       const result = yield sequelize.query(
         'SELECT source_identifier, destination_identifier,'
           + ' sum(source_amount) as source_amount,'
@@ -238,6 +89,28 @@ function PaymentFactory (sequelize, validator, container, User) {
       )
 
       return result[0]
+    }
+
+    static * createOrUpdate (payment) {
+      debug('createOrUpdate', payment)
+
+      // Get the db entry
+      let dbPayment = yield Payment.findOne({
+        where: { execution_condition: payment.execution_condition }
+      })
+
+      debug('createOrUpdate payment', dbPayment)
+
+      // Create the db entry if it doesn't exist yet
+      if (!dbPayment) {
+        dbPayment = new Payment()
+
+        debug('createOrUpdate creating payment')
+      }
+
+      dbPayment.setDataExternal(payment)
+
+      return dbPayment.save()
     }
   }
 
@@ -278,7 +151,7 @@ function PaymentFactory (sequelize, validator, container, User) {
     ]
   })
 
-  container.schedulePostConstructor((User) => {
+  container.schedulePostConstructor(User => {
     Payment.DbModel.belongsTo(User.DbModel, {
       foreignKey: 'source_user',
       as: 'SourceUser'
@@ -288,6 +161,24 @@ function PaymentFactory (sequelize, validator, container, User) {
       as: 'DestinationUser'
     })
   }, [ UserFactory ])
+
+  container.schedulePostConstructor(model => {
+    ActivityLog = model
+
+    container.schedulePostConstructor(ActivityLogsItem => {
+      Payment.DbModel.belongsToMany(ActivityLog.DbModel, {
+        through: {
+          model: ActivityLogsItem.DbModel,
+          unique: false,
+          scope: {
+            item_type: 'payment'
+          }
+        },
+        foreignKey: 'item_id',
+        constraints: false
+      })
+    }, [ ActivityLogsItemFactory ])
+  }, [ ActivityLogFactory ])
 
   return Payment
 }

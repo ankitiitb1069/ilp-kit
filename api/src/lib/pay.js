@@ -1,22 +1,24 @@
-"use strict"
+'use strict'
 
 const Socket = require('../lib/socket')
 const SPSP = require('../lib/spsp')
 const Utils = require('../lib/utils')
+const Activity = require('../lib/activity')
 const PaymentFactory = require('../models/payment')
 
 const InsufficientFundsError = require('../errors/ledger-insufficient-funds-error')
 
 module.exports = class Pay {
-  static constitute() { return [Socket, SPSP, PaymentFactory, Utils] }
-  constructor(socket, spsp, Payment, utils) {
+  static constitute () { return [Socket, SPSP, PaymentFactory, Utils, Activity] }
+  constructor (socket, spsp, Payment, utils, activity) {
     this.socket = socket
     this.spsp = spsp
     this.utils = utils
+    this.activity = activity
     this.Payment = Payment
   }
 
-  * pay(opts) {
+  * pay (opts) {
     let transfer
 
     const destination = yield this.utils.parseDestination({
@@ -26,7 +28,6 @@ module.exports = class Pay {
     /**
      * Ledger payment
      */
-
     try {
       transfer = yield this.spsp.pay({
         source: opts.source,
@@ -46,19 +47,7 @@ module.exports = class Pay {
     /**
      * Store the payment in the wallet db
      */
-
-    // Get the db entry if the payment is local
-    let dbPayment = yield this.Payment.findOne({
-      where: { execution_condition: transfer.executionCondition }
-    })
-
-    // Create a db entry if the payment is interledger
-    if (!dbPayment) {
-      dbPayment = new this.Payment()
-    }
-
-    // Save in the db
-    dbPayment.setDataExternal({
+    const payment = yield this.Payment.createOrUpdate({
       source_user: opts.source.id,
       source_identifier: this.utils.getWebfingerAddress(opts.source.username),
       source_amount: parseFloat(opts.sourceAmount),
@@ -71,13 +60,7 @@ module.exports = class Pay {
       execution_condition: transfer.executionCondition,
       state: 'success'
     })
-    dbPayment = yield dbPayment.save()
 
-    /**
-     * Notify affected accounts
-     */
-
-    // TODO who do we notify?
-    this.socket.payment(opts.source.username, this.Payment.fromDatabaseModel(dbPayment).getDataExternal())
+    yield this.activity.processPayment(payment, opts.source)
   }
 }
