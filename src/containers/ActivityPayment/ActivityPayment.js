@@ -12,8 +12,6 @@ import Amount from 'components/Amount/Amount'
 import { contextualizePayment } from '../../utils/api'
 import { getAccountName } from '../../utils/account'
 
-import { currencySymbolMap } from 'currency-symbol-map'
-
 import classNames from 'classnames/bind'
 import styles from './ActivityPayment.scss'
 const cx = classNames.bind(styles)
@@ -127,9 +125,7 @@ export default class ActivityPayment extends Component {
     const advancedMode = this.props.advancedMode
 
     const profilePic = (type === 'outgoing' ? payment.destination_image_url : payment.source_image_url) || require('./placeholder.png')
-    const paymentAmountOnLedger = (type === 'outgoing' ? payment.source_amount : payment.destination_amount)
-    const paymentAmountInCurrency = paymentAmountOnLedger / Math.pow(10, config.currencyScale)
-    const paymentSymbol = currencySymbolMap [config.currencyCode]  || '?'
+    const paymentAmount = type === 'outgoing' ? payment.source_amount : payment.destination_amount
 
     // TODO payments grouping / message
     return (
@@ -172,7 +168,7 @@ export default class ActivityPayment extends Component {
           <div className="col-xs-4">
             <div className={cx('amount', type)}>
               {/* TODO Show both source and destination amounts */}
-              <Amount amount={paymentAmountInCurrency} currencySymbol={paymentSymbol} />
+              <Amount amount={paymentAmount} currencySymbol={config.currencySymbol} />
             </div>
 
             <div className={cx('transfersCount')}>
