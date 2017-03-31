@@ -18,7 +18,6 @@ function MiscControllerFactory (Auth, log, config, ledger, utils, connector) {
 
   return class MiscController {
     static init (router) {
-console.log('INIT MISC')
       router.get('/parse/destination', this.destination)
       router.get('/config', this.config)
     }
@@ -44,6 +43,7 @@ console.log('INIT MISC')
      *        "paymentUri": "http://wallet.example/api/spsp/alice",
      *        "ilpAddress": "wallet.alice",
      *        "currencyCode": "USD",
+     *        "currencySymbol": "$",
      *        "name": "Alice Faye",
      *        "imageUrl": ""
      *      }
@@ -76,12 +76,11 @@ console.log('INIT MISC')
      *    {
      *      "ledgerUri": "https://wallet.example/ledger",
      *      "currencyCode": "USD",
-     *      "currencyScale": 6
+     *      "currencySymbol": "$"
      *    }
      */
     static * config () {
       const ledgerInfo = yield ledger.getInfo()
-console.log('CALLED MISC', ledgerInfo)
 
       const packageVersion = require('../../../package.json').version
       const gitCommit = yield new Promise(resolve => {
@@ -95,6 +94,7 @@ console.log('CALLED MISC', ledgerInfo)
         ledgerUri: config.data.getIn(['ledger', 'public_uri']),
         currencyCode: ledgerInfo.currency_code,
         currencySymbol: currencySymbolMap[ledgerInfo.currency_code],
+        currencyScale: ledgerInfo.scale,
         registration: config.data.get('registration'),
         antiFraud: !!config.data.getIn(['antifraud', 'service_url']),
         title: config.data.get('client_title'),
