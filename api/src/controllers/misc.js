@@ -43,7 +43,6 @@ console.log('INIT MISC')
      *        "paymentUri": "http://wallet.example/api/spsp/alice",
      *        "ilpAddress": "wallet.alice",
      *        "currencyCode": "USD",
-     *        "currencySymbol": "$",
      *        "name": "Alice Faye",
      *        "imageUrl": ""
      *      }

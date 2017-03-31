@@ -1,7 +1,6 @@
 import React, {Component, PropTypes} from 'react'
 import { connect } from 'react-redux'
 import { amountsChange, requestQuote } from 'redux/actions/send'
-import { currencySymbolMap } from 'currency-symbol-map'
 
 import classNames from 'classnames/bind'
 import styles from './AmountsBox.scss'
@@ -72,8 +71,6 @@ export default class AmountsBox extends Component {
     if (nextProps.sourceAmount && nextProps.destinationAmount) return
 
     // Request a quote
-    // Note that in version 2.0, quotes are still done in (float) currency units, not in (integer) ledger units,
-    // so we can directly use the float values from/to the user interface.
     nextProps.requestQuote({
       destination: nextProps.destinationInfo.identifier,
       sourceAmount: nextProps.sourceAmount,
@@ -117,9 +114,8 @@ export default class AmountsBox extends Component {
       || destinationInfo.error
       || (quoting && this.lastQuotingField === 'source')
 
-    const sourceCurrency = currencySymbolMap[config.currencyCode] || '?'
-
-    const destinationCurrency = (destinationInfo && currencySymbolMap[destinationInfo.currencyCode]) || '?'
+    const sourceCurrency = config.currencySymbol
+    const destinationCurrency = (destinationInfo && destinationInfo.currencySymbol) || config.currencySymbol
 
     return (
       <div className={cx('AmountsBox')}>

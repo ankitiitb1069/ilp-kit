@@ -2,6 +2,7 @@
 
 const _ = require('lodash')
 const WebFinger = require('webfinger.js')
+const currencySymbolMap = require('currency-symbol-map').currencySymbolMap
 const superagent = require('superagent-promise')(require('superagent'), Promise)
 
 const Config = require('./config')
@@ -58,17 +59,16 @@ console.log('looking up', resource)
    */
   * parseDestination (options) {
     const self = this
-
     const destination = options.destination
 
     let ledgerUri
     let paymentUri
     let ilpAddress
+    let ledgerInfo = {}
 
     if (self.isWebfinger(destination)) {
       // Webfinger lookup
       const account = yield self.getWebfingerAccount(destination)
-
       ledgerUri = account.ledgerUri
       paymentUri = account.paymentUri
       ilpAddress = account.ilpAddress
@@ -83,17 +83,17 @@ console.log('looking up', resource)
     let receiver
     try {
       receiver = (yield superagent.get(paymentUri).end()).body
+      ledgerInfo = receiver.ledger_info
     } catch (e) {
       throw new NotFoundError('Unknown receiver')
     }
-
     return {
       ledgerUri,
       paymentUri,
       ilpAddress,
       identifier: self.isWebfinger(destination) ? destination : this.getWebfingerAddress(destination),
-      currencyCode: receiver.currency_code,
-      currencyScale: receiver.currency_scale,
+      currencyCode: ledgerInfo.currency_code,
+      currencySymbol: currencySymbolMap[ledgerInfo.currency_code],
       name: receiver.name,
       imageUrl: receiver.image_url
     }
