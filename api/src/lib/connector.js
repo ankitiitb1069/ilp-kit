@@ -84,7 +84,7 @@ module.exports = class Conncetor {
     if (hostInfo.publicKey) {
       publicKey = hostInfo.publicKey
       rpcUri = hostInfo.peersRpcUri
-console.log('getPeerInfo', peer)
+
       //this calls the function in ilp-plugin-virtual src/utils/token.js, which looks like:
       //const prefix = ({ secretKey, peerPublicKey, currencyScale, currencyCode }) => {
       ledgerName = getPrefix({

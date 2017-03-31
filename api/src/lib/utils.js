@@ -33,7 +33,7 @@ module.exports = class Utils {
       uri_fallback: false,
       request_timeout: 3000
     })
-console.log('looking up', resource)
+
     return (yield new Promise((resolve, reject) => {
       webfinger.lookup(resource, (err, res) => err ? reject(err) : resolve(res.object))
     }))
@@ -59,6 +59,7 @@ console.log('looking up', resource)
    */
   * parseDestination (options) {
     const self = this
+
     const destination = options.destination
 
     let ledgerUri
@@ -69,6 +70,7 @@ console.log('looking up', resource)
     if (self.isWebfinger(destination)) {
       // Webfinger lookup
       const account = yield self.getWebfingerAccount(destination)
+
       ledgerUri = account.ledgerUri
       paymentUri = account.paymentUri
       ilpAddress = account.ilpAddress
@@ -87,6 +89,7 @@ console.log('looking up', resource)
     } catch (e) {
       throw new NotFoundError('Unknown receiver')
     }
+
     return {
       ledgerUri,
       paymentUri,

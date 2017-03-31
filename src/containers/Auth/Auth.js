@@ -71,7 +71,6 @@ export default class Home extends Component {
   }
 
   render() {
-console.log('render props', this.props)
     const {authFail, login, register, forgot, changePassword, verified, params, config} = this.props
     const {currentView} = this.state
 
