@@ -113,7 +113,7 @@ export default class AmountsBox extends Component {
     const isReceivingAmountDisabled = !destinationInfo.identifier
       || destinationInfo.error
       || (quoting && this.lastQuotingField === 'source')
-
+console.log('symbols', config, destinationInfo)
     const sourceCurrency = config.currencySymbol
     const destinationCurrency = (destinationInfo && destinationInfo.currencySymbol) || config.currencySymbol
 

@@ -8,6 +8,7 @@ const Log = require('../lib/log')
 const Config = require('../lib/config')
 const Ledger = require('../lib/ledger')
 const Utils = require('../lib/utils')
+const currencySymbolMap = require('currency-symbol-map').currencySymbolMap
 const Connector = require('../lib/connector')
 const InvalidBodyError = require('../errors/invalid-body-error')
 
@@ -92,8 +93,8 @@ console.log('CALLED MISC', ledgerInfo)
       const response = {
         clientUri: config.data.get('client_host'),
         ledgerUri: config.data.getIn(['ledger', 'public_uri']),
-        currencyCode: ledgerInfo.currencyCode,
-        currencyScale: ledgerInfo.currencyScale,
+        currencyCode: ledgerInfo.currency_code,
+        currencySymbol: currencySymbolMap[ledgerInfo.currency_code],
         registration: config.data.get('registration'),
         antiFraud: !!config.data.getIn(['antifraud', 'service_url']),
         title: config.data.get('client_title'),
