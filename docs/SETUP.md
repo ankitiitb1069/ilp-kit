@@ -198,7 +198,7 @@ Start the configuration tool by running:
 npm run configure
 ```
 
-The CLI provides example values, but I'll also put the configuration I'm using.
+The CLI provides example values, but I'll also put the configuration I'm using (instead of `sharafian` and `PASSWORD`, put the postgres username/password you created previously in the [Postgresql setup](#postgresql-setup) step).
 
 - Posgres DB URI: `postgres://sharafian:PASSWORD@localhost/ilpkit`
 - Hostname: `niles.sharafian.com`
